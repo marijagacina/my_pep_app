@@ -6,3 +6,4 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(my_pep_app)
 
 target_sources(app PRIVATE src/main.cpp)
+target_include_directories(app PRIVATE src)
