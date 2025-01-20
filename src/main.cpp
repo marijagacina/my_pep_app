@@ -17,10 +17,10 @@
 
 LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 
-// Mutex to protect GPIO state
+// Global mutex to protect GPIO state
 struct k_mutex gpio_state_mutex;
 
-/** @brief Global state of GPIO input. */
+// Global state of gpio input
 bool gpio_state = false;
 
 // Thread stacks
@@ -58,7 +58,7 @@ void ReadClass::process_gpio_state() {
         k_sleep(K_FOREVER);
 
         bool current_state = gpio_input.read();
-        k_msleep(DEBOUNCE_DELAY_MS); // Debounce delay
+        k_msleep(DEBOUNCE_DELAY_MS); 
         bool stable_state = gpio_input.read();
 
         if (current_state == stable_state && stable_state != last_state) {
@@ -99,7 +99,7 @@ int ReadClass::init() {
     return 0;
 }
 
-    /**
+/**
  * @brief Initialize the GPIO input and interrupt.
  * 
  * @return int 0 on success, error code otherwise

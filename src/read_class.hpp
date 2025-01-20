@@ -5,13 +5,13 @@
 #include "gpiohal.hpp"
 
 /// Debounce delay in milliseconds
-constexpr int DEBOUNCE_DELAY_MS = 50;
+const int DEBOUNCE_DELAY_MS = 50;
 
 /// Priority for the ReadClass thread
-constexpr int READ_THREAD_PRIORITY = 1;
+const int READ_THREAD_PRIORITY = 1;
 
 /// Thread stack size for the ReadClass thread
-constexpr size_t READ_THREAD_STACK_SIZE = 1024;
+const size_t READ_THREAD_STACK_SIZE = 1024;
 
 extern k_mutex gpio_state_mutex; ///< Shared mutex for GPIO state
 extern bool gpio_state;          ///< Shared GPIO state
@@ -34,7 +34,7 @@ private:
      * @brief GPIO interrupt callback.
      * 
      * @param dev GPIO device pointer
-     * @param cb GPIO callback structure
+     * @param cb GPIO callback 
      * @param pins Triggered pins
      */
     static void gpio_interrupt_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
