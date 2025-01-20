@@ -2,8 +2,6 @@
  * @file main.cpp
  * @brief Zephyr application with decoupled hardware access for GPIO input and output.
  *
- * This application demonstrates GPIO handling using a class-based approach
- * with hardware access abstracted through an interface.
  */
 
 #include <zephyr/kernel.h>
