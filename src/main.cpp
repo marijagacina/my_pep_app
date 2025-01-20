@@ -1,3 +1,12 @@
+/**
+ * @file main.cpp
+ * @brief Zephyr application for GPIO input and output handling using classes.
+ * 
+ * This application demonstrates the use of GPIO input and output with a
+ * class-based approach in Zephyr RTOS. The ReadClass monitors a GPIO input,
+ * while the ReactClass controls an LED based on the input state.
+ */
+
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
@@ -5,28 +14,86 @@
 #include <inttypes.h>
 #include <zephyr/logging/log.h>
 
+// Module for logging
 LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
-// GPIO Input and Output Definitions
-#define GPIO_INPUT_NODE DT_NODELABEL(gpio_input)
-#define GPIO_OUTPUT_NODE DT_NODELABEL(gpio_output)
+
+// GPIO Definitions
+#define GPIO_INPUT_NODE DT_NODELABEL(gpio_input) /**< Device Tree node for GPIO input */
+#define GPIO_OUTPUT_NODE DT_NODELABEL(gpio_output) /**< Device Tree node for GPIO output */
 
 #if !DT_NODE_HAS_STATUS(GPIO_INPUT_NODE, okay) || !DT_NODE_HAS_STATUS(GPIO_OUTPUT_NODE, okay)
 #error "GPIO input or output not properly defined in device tree"
 #endif
 
-static struct gpio_dt_spec gpio_input = GPIO_DT_SPEC_GET_OR(GPIO_INPUT_NODE, gpios, {0});
-static struct gpio_dt_spec gpio_output = GPIO_DT_SPEC_GET_OR(DT_ALIAS(led0), gpios, {0});
+// GPIO Specifications
+static struct gpio_dt_spec gpio_input = GPIO_DT_SPEC_GET_OR(GPIO_INPUT_NODE, gpios, {0}); /**< GPIO input device */
+static struct gpio_dt_spec gpio_output = GPIO_DT_SPEC_GET_OR(DT_ALIAS(led0), gpios, {0}); /**< GPIO output device */
 
-// Debounce delay and LED timing
-#define DEBOUNCE_DELAY_MS 50
-#define LED_BLINK_DELAY_MS 100
-#define LED_ON_TIME_MS 500
+// Timing Constants
+#define DEBOUNCE_DELAY_MS 50 /**< Debounce delay in milliseconds */
+#define LED_BLINK_DELAY_MS 100 /**< LED blink delay in milliseconds */
+#define LED_ON_TIME_MS 500 /**< LED ON time in milliseconds */
 
+// Mutex to protect GPIO state
 static struct k_mutex gpio_state_mutex;
+
+/** @brief Global state of GPIO input. */
 bool gpio_state = false;
 
-K_THREAD_STACK_DEFINE(thread_1_stack, 1024);
-K_THREAD_STACK_DEFINE(thread_2_stack, 1024);
+// Thread stacks
+K_THREAD_STACK_DEFINE(thread_1_stack, 1024); /**< Stack for ReadClass thread */
+K_THREAD_STACK_DEFINE(thread_2_stack, 1024); /**< Stack for ReactClass thread */
+
+/**
+ * @brief Interface for GPIO operations.
+ */
+class GPIO {
+public:
+    virtual ~GPIO() = default;
+
+    /**
+     * @brief Configure the GPIO pin.
+     */
+    virtual int configure() = 0;
+
+    /**
+     * @brief Set the GPIO pin.
+     * 
+     * @param value Boolean value to set the pin state.
+     */
+    virtual void set(bool value) = 0;
+
+    /**
+     * @brief Get the GPIO pin state.
+     * 
+     * @return true if the pin is high, false otherwise.
+     */
+    virtual bool get() = 0;
+};
+
+class ZephyrGPIO : public GPIO {
+private:
+    struct gpio_dt_spec spec;
+
+public:
+    explicit ZephyrGPIO(const struct gpio_dt_spec& spec) : spec(spec) {}
+
+    int configure() override {
+        if (!gpio_is_ready_dt(&spec)) {
+            LOG_ERR("GPIO device %s is not ready", spec.port->name);
+            return -ENODEV;
+        }
+        return gpio_pin_configure_dt(&spec, GPIO_OUTPUT);
+    }
+
+    void set(bool value) override {
+        gpio_pin_set_dt(&spec, value);
+    }
+
+    bool get() override {
+        return gpio_pin_get_dt(&spec);
+    }
+};
 
 // Class Definitions
 class ReadClass {
@@ -188,7 +255,6 @@ private:
 
 int main(void) {
     k_mutex_init(&gpio_state_mutex);
-    LOG_INF("out port name %s\n", gpio_output.port->name);
 
     static ReadClass read_class;
     static ReactClass react_class;
